@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingVertical="8dp">
+
+    <ImageView
+        android:id="@+id/img_warung"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:src="@drawable/ic_baseline_broken_image_48"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/txt_name"
+        style="@style/TextAppearance.MaterialComponents.Subtitle1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/txt_address"
+        app:layout_constraintStart_toEndOf="@+id/img_warung"
+        app:layout_constraintTop_toTopOf="@+id/img_warung"
+        app:layout_constraintVertical_chainStyle="spread"
+        tools:text="@string/nama_warung" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/txt_address"
+        style="@style/TextAppearance.MaterialComponents.Body2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toTopOf="@+id/txt_coordinate"
+        app:layout_constraintStart_toStartOf="@+id/txt_name"
+        app:layout_constraintTop_toBottomOf="@+id/txt_name"
+        tools:text="@string/alamat" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/txt_coordinate"
+        style="@style/TextAppearance.MaterialComponents.Caption"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="@+id/img_warung"
+        app:layout_constraintStart_toStartOf="@+id/txt_address"
+        app:layout_constraintTop_toBottomOf="@+id/txt_address"
+        tools:text="@string/koordinat" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

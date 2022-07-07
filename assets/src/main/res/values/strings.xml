@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">WARUNGKU</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="add_button">Add Button</string>
+    <string name="submit">Submit</string>
+    <string name="nama_warung">Nama Warung</string>
+    <string name="photo_warung">Photo Warung</string>
+    <string name="koordinat">Koordinat</string>
+    <string name="alamat">Alamat</string>
+    <string name="password">Password</string>
+    <string name="email_phone">Email/Phone</string>
+    <string name="login_page">Login Page</string>
+    <string name="login">Login</string>
+    <string name="register_page">Register Page</string>
+    <string name="re_password">Re-Password</string>
+    <string name="belum_punya_akun_silahkan">Belum punya akun? Silahkan</string>
+    <string name="register">Register</string>
+    <string name="sudah_punya_akun_silahkan">Sudah punya akun? Silahkan</string>
+
+    <string name="coordinate_format">%1$s,%2$s</string>
+    <string name="sign_out">Sign Out</string>
+</resources>

@@ -1,0 +1,306 @@
+package com.arafat1419.warungku.main.edit
+
+import android.Manifest
+import android.app.Activity
+import android.app.AlertDialog
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.LocationManager
+import android.net.Uri
+import android.os.Bundle
+import android.provider.Settings
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
+import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
+import androidx.navigation.fragment.navArgs
+import com.arafat1419.warungku.assets.R
+import com.arafat1419.warungku.core.domain.model.WarungDomain
+import com.arafat1419.warungku.core.vo.Resource
+import com.arafat1419.warungku.databinding.FragmentEditBinding
+import com.arafat1419.warungku.main.MainViewModel
+import com.bumptech.glide.Glide
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import org.koin.androidx.viewmodel.ext.android.viewModel
+import java.io.IOException
+
+class EditFragment : Fragment() {
+    private var _binding: FragmentEditBinding? = null
+    private val binding get() = _binding!!
+
+    private val viewModel: MainViewModel by viewModel()
+
+    private val args: EditFragmentArgs by navArgs()
+
+    private val fusedLocationClient by lazy {
+        LocationServices.getFusedLocationProviderClient(requireContext())
+    }
+
+    private lateinit var mLocationRequest: LocationRequest
+
+    private var uriImage: Uri? = null
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        // Inflate the layout for this fragment
+        _binding = FragmentEditBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        if (args.warungDomain != null) {
+            binding.edtName.isEnabled = false
+            setData(args.warungDomain)
+            activity?.title = "Edit Warung"
+        } else {
+            binding.edtName.isEnabled = true
+            activity?.title = "Tambah Warung"
+        }
+
+        with(binding) {
+            btnCoordinate.setOnClickListener {
+                getLocation()
+            }
+            imgPhoto.setOnClickListener {
+                Intent(Intent.ACTION_GET_CONTENT).also {
+                    it.type = "image/*"
+                    startForResult.launch(it)
+                }
+            }
+            btnSubmit.setOnClickListener {
+                if (emptyTextCheck()) {
+                    uploadImage()
+                }
+            }
+        }
+    }
+
+    private val startForResult =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val intent = result.data
+                val filePath: Uri = intent?.data!!
+
+                uriImage = filePath
+
+                try {
+                    binding.imgPhoto.setImageURI(filePath)
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                }
+            }
+        }
+
+    private val locationPermissionRequest = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        var granted = true
+        permissions.entries.forEach {
+            if (!it.value) {
+                granted = false
+            }
+        }
+        if (granted) {
+            createLocationRequest()
+        } else {
+            Toast.makeText(context, "Location permission denied", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun setData(warungDomain: WarungDomain?) {
+        with(binding) {
+            Glide.with(requireContext())
+                .load(warungDomain?.photoUrl)
+                .into(imgPhoto)
+
+            edtName.setText(warungDomain?.name)
+
+            val coordinateFormat = getString(R.string.coordinate_format)
+            edtCoordinate.setText(
+                String.format(
+                    coordinateFormat,
+                    warungDomain?.lat,
+                    warungDomain?.long
+                )
+            )
+
+            edtAddress.setText(warungDomain?.address)
+        }
+    }
+
+    private fun uploadImage() {
+        if (uriImage != null) {
+            viewModel.uploadWarungImage(uriImage!!, binding.edtName.text.toString().trim())
+                .observe(viewLifecycleOwner) { result ->
+                    when (result) {
+                        is Resource.Loading -> binding.progressBar.visibility = View.VISIBLE
+                        is Resource.Success -> {
+                            binding.progressBar.visibility = View.GONE
+                            saveWarung(result.data)
+                        }
+                        is Resource.Failure -> Toast.makeText(
+                            context,
+                            result.message,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+        }
+    }
+
+    private fun saveWarung(uri: Uri?) {
+        with(binding) {
+            val splitGeoString = edtCoordinate.text.toString().trim().split(",")
+            val warungDomain = WarungDomain(
+                photoUrl = uri.toString(),
+                name = edtName.text.toString().trim(),
+                lat = splitGeoString[0].toDouble(),
+                long = splitGeoString[1].toDouble(),
+                address = edtAddress.text.toString().trim()
+            )
+
+            viewModel.saveWarung(warungDomain).observe(viewLifecycleOwner) { result ->
+                when (result) {
+                    is Resource.Loading -> binding.progressBar.visibility = View.VISIBLE
+                    is Resource.Success -> {
+                        binding.progressBar.visibility = View.GONE
+                        findNavController().navigate(
+                            EditFragmentDirections.actionEditFragmentToHomeFragment()
+                        )
+                    }
+                    is Resource.Failure -> Toast.makeText(
+                        context,
+                        result.message,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+            }
+        }
+    }
+
+    private fun getLocation() {
+        if (checkPermissions()) {
+            if (isGpsEnable()) {
+                fusedLocationClient.lastLocation
+                    .addOnSuccessListener {
+                        if (it != null) {
+                            val coordinateFormat = getString(R.string.coordinate_format)
+                            binding.edtCoordinate.setText(
+                                String.format(
+                                    coordinateFormat,
+                                    it.latitude,
+                                    it.longitude
+                                )
+                            )
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Open google maps first",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+            } else {
+                gpsDialog()
+            }
+        } else {
+            locationPermissionRequest.launch(LOCATION_PERMISSION_REQUEST)
+        }
+    }
+
+    private fun createLocationRequest() {
+        mLocationRequest = LocationRequest.create()
+
+        mLocationRequest.interval = UPDATE_INTERVAL_IN_MILLISECONDS
+        mLocationRequest.fastestInterval = FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS
+        mLocationRequest.priority = Priority.PRIORITY_HIGH_ACCURACY
+    }
+
+    private fun checkPermissions(): Boolean {
+        return ActivityCompat.checkSelfPermission(
+            requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(
+            requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun isGpsEnable(): Boolean {
+        val manager = activity?.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return manager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+    }
+
+    private fun gpsDialog() {
+        val builder = AlertDialog.Builder(requireContext())
+        builder
+            .setTitle("GPS Configuration")
+            .setMessage("Turn On")
+            .setPositiveButton("Confirm") { _, _ ->
+                Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS).also {
+                    startActivity(it)
+                }
+            }
+            .setNegativeButton(
+                android.R.string.cancel
+            ) { _, _ ->
+                Toast.makeText(
+                    context,
+                    "For better functionality turn on your GPS",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            .create()
+            .show()
+    }
+
+    private fun emptyTextCheck(): Boolean {
+        var check: Boolean
+        with(binding) {
+            val isNullOrEmpty =
+                edtName.text.isNullOrEmpty() || edtAddress.text.isNullOrEmpty() || edtCoordinate.text.isNullOrEmpty()
+            val isImageEmpty = uriImage == null
+            check = when {
+                isNullOrEmpty -> {
+                    Toast.makeText(context, "Field cannot be empty", Toast.LENGTH_SHORT).show()
+                    false
+                }
+                isImageEmpty -> {
+                    Toast.makeText(context, "Image cannot be empty", Toast.LENGTH_SHORT).show()
+                    false
+                }
+                else -> true
+            }
+        }
+        return check
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+    companion object {
+        private const val UPDATE_INTERVAL_IN_MILLISECONDS: Long = 10000
+
+        private const val FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS =
+            UPDATE_INTERVAL_IN_MILLISECONDS / 2
+
+        private val LOCATION_PERMISSION_REQUEST = arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    }
+}
