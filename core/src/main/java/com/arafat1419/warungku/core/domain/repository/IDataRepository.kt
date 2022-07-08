@@ -10,6 +10,8 @@ interface IDataRepository {
     fun getWarung(id: String): Flow<Resource<WarungDomain?>>
     fun saveWarung(warungDomain: WarungDomain): Flow<Resource<Boolean>>
 
+    fun isNameAvailable(id: String?, name: String): Flow<Resource<Boolean>>
+
     fun uploadWarungImage(uri: Uri, name: String): Flow<Resource<Uri?>>
 
     fun isUserAuthenticated(): Flow<Boolean>

@@ -59,7 +59,7 @@ class HomeFragment : Fragment() {
     private fun clickHandler() {
         warungAdapter.onItemClicked = {
             findNavController().navigate(
-                HomeFragmentDirections.actionHomeFragmentToDetailFragment(it.name)
+                HomeFragmentDirections.actionHomeFragmentToDetailFragment(it.id)
             )
         }
 

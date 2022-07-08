@@ -47,10 +47,35 @@ class DetailFragment : Fragment() {
                         binding.progressBar.visibility = View.GONE
                         setData(result.data)
                     }
-                    is Resource.Failure -> Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
+                    is Resource.Failure -> Toast.makeText(
+                        context,
+                        result.message,
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
 
             }
+
+            /*// --
+
+            viewModel.addWarung(WarungDomain(
+                args.id,
+                "URL",
+                "TestNEW2",
+                1.0,
+                1.0,
+                "POSO"
+            )).observe(viewLifecycleOwner) { result ->
+                when (result) {
+                    is Resource.Loading -> Log.d("LHT", "loading: Loading")
+                    is Resource.Success -> {
+                        Log.d("LHT", "success: ${result.data}")
+                    }
+                    is Resource.Failure -> Log.d("LHT", "failure: ${result.message}")
+                }
+            }
+
+            // --*/
         }
     }
 

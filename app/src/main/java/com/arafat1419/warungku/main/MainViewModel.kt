@@ -11,6 +11,9 @@ class MainViewModel(private val dataUseCase: DataUseCase) : ViewModel() {
 
     fun getWarung(id: String) = dataUseCase.getWarung(id).asLiveData()
 
+    fun isNameAvailable(id: String?, name: String) =
+        dataUseCase.isNameAvailable(id, name).asLiveData()
+
     fun saveWarung(warungDomain: WarungDomain) =
         dataUseCase.saveWarung(warungDomain).asLiveData()
 

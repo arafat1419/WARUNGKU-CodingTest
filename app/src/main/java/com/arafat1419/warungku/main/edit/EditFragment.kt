@@ -62,11 +62,9 @@ class EditFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         if (args.warungDomain != null) {
-            binding.edtName.isEnabled = false
             setData(args.warungDomain)
             activity?.title = "Edit Warung"
         } else {
-            binding.edtName.isEnabled = true
             activity?.title = "Tambah Warung"
         }
 
@@ -167,32 +165,53 @@ class EditFragment : Fragment() {
 
     private fun saveWarung(uri: Uri?) {
         with(binding) {
-            val splitGeoString = edtCoordinate.text.toString().trim().split(",")
-            val warungDomain = WarungDomain(
-                photoUrl = uri.toString(),
-                name = edtName.text.toString().trim(),
-                lat = splitGeoString[0].toDouble(),
-                long = splitGeoString[1].toDouble(),
-                address = edtAddress.text.toString().trim()
-            )
+            viewModel.isNameAvailable(args.warungDomain?.id, edtName.text.toString().trim())
+                .observe(viewLifecycleOwner) { checkResult ->
+                    when (checkResult) {
+                        is Resource.Loading -> {}
+                        is Resource.Success -> {
+                            if (checkResult.data) {
+                                val splitGeoString = edtCoordinate.text.toString().trim().split(",")
+                                val warungDomain = WarungDomain(
+                                    id = args.warungDomain?.id,
+                                    photoUrl = uri.toString(),
+                                    name = edtName.text.toString().trim(),
+                                    lat = splitGeoString[0].toDouble(),
+                                    long = splitGeoString[1].toDouble(),
+                                    address = edtAddress.text.toString().trim()
+                                )
 
-            viewModel.saveWarung(warungDomain).observe(viewLifecycleOwner) { result ->
-                when (result) {
-                    is Resource.Loading -> binding.progressBar.visibility = View.VISIBLE
-                    is Resource.Success -> {
-                        binding.progressBar.visibility = View.GONE
-                        findNavController().navigate(
-                            EditFragmentDirections.actionEditFragmentToHomeFragment()
-                        )
+                                viewModel.saveWarung(warungDomain)
+                                    .observe(viewLifecycleOwner) { result ->
+                                        when (result) {
+                                            is Resource.Loading -> binding.progressBar.visibility =
+                                                View.VISIBLE
+                                            is Resource.Success -> {
+                                                binding.progressBar.visibility = View.GONE
+                                                findNavController().navigate(
+                                                    EditFragmentDirections.actionEditFragmentToHomeFragment()
+                                                )
+                                            }
+                                            is Resource.Failure -> Toast.makeText(
+                                                context,
+                                                result.message,
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+
+                                    }
+                            } else {
+                                Toast.makeText(context, "Name already exists", Toast.LENGTH_SHORT)
+                                    .show()
+                            }
+                        }
+                        is Resource.Failure -> Toast.makeText(
+                            context,
+                            checkResult.message,
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
-                    is Resource.Failure -> Toast.makeText(
-                        context,
-                        result.message,
-                        Toast.LENGTH_SHORT
-                    ).show()
                 }
-
-            }
         }
     }
 

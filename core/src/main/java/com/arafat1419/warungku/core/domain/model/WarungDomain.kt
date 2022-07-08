@@ -6,6 +6,7 @@ import java.io.Serializable
 
 @Parcelize
 data class WarungDomain(
+    var id: String? = null,
     val photoUrl: String? = null,
     val name: String? = null,
     val lat: Double? = null,

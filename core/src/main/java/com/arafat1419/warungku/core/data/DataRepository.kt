@@ -47,13 +47,48 @@ class DataRepository(
 
     override fun saveWarung(warungDomain: WarungDomain): Flow<Resource<Boolean>> =
         callbackFlow {
+            val id = if (warungDomain.id == null) {
+                val newId = dataCollection.warungCollection().document().id
+                warungDomain.id = newId
+                newId
+            } else {
+                warungDomain.id!!
+            }
+
+            val objectToMap = hashMapOf<String, Any?>(
+                "id" to warungDomain.id,
+                "photoUrl" to warungDomain.photoUrl,
+                "name" to warungDomain.name,
+                "lat" to warungDomain.lat,
+                "long" to warungDomain.long,
+                "address" to warungDomain.address
+            )
+
             val listener = dataCollection.warungCollection()
-                .document(warungDomain.name!!)
-                .set(warungDomain)
+                .document(id)
+                .set(objectToMap)
                 .addOnCompleteListener { task ->
 
                     val response = if (task.isSuccessful) Resource.Success(task.isSuccessful)
                     else Resource.Failure(task.exception?.message)
+
+                    trySend(response)
+                }
+
+            awaitClose { listener.result }
+        }
+
+    override fun isNameAvailable(id: String?, name: String): Flow<Resource<Boolean>> =
+        callbackFlow {
+            val listener = dataCollection.warungCollection()
+                .whereEqualTo("name", name)
+                .limit(1)
+                .get()
+                .addOnCompleteListener { task ->
+                    val response = if (task.isSuccessful) {
+                        val getData = task.result.toObjects(WarungDomain::class.java)
+                        Resource.Success(task.result.isEmpty || getData[0].id == id)
+                    } else Resource.Failure(task.exception?.message)
 
                     trySend(response)
                 }

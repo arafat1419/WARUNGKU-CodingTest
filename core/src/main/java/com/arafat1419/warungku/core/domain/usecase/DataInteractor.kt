@@ -53,6 +53,20 @@ class DataInteractor(private val iDataRepository: IDataRepository) : DataUseCase
             }
         }
 
+    override fun isNameAvailable(id: String?, name: String): Flow<Resource<Boolean>> =
+        flow {
+            emit(Resource.Loading())
+
+            try {
+                iDataRepository.isNameAvailable(id, name).collect {
+                    emit(it)
+                }
+
+            } catch (e: Exception) {
+                emit(Resource.Failure(e.message))
+            }
+        }
+
     override fun uploadWarungImage(uri: Uri, name: String): Flow<Resource<Uri?>> =
         flow {
             emit(Resource.Loading())
