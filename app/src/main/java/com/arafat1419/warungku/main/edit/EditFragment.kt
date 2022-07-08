@@ -17,6 +17,7 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
@@ -80,8 +81,12 @@ class EditFragment : Fragment() {
                 }
             }
             btnSubmit.setOnClickListener {
-                if (emptyTextCheck()) {
-                    uploadImage()
+                if (checkEditText()) {
+                    if (uriImage == args.warungDomain?.photoUrl?.toUri()) {
+                        saveWarung(args.warungDomain?.photoUrl?.toUri())
+                    } else {
+                        uploadImage()
+                    }
                 }
             }
         }
@@ -137,27 +142,27 @@ class EditFragment : Fragment() {
             )
 
             edtAddress.setText(warungDomain?.address)
+
+            uriImage = warungDomain?.photoUrl?.toUri()
         }
     }
 
     private fun uploadImage() {
-        if (uriImage != null) {
-            viewModel.uploadWarungImage(uriImage!!, binding.edtName.text.toString().trim())
-                .observe(viewLifecycleOwner) { result ->
-                    when (result) {
-                        is Resource.Loading -> binding.progressBar.visibility = View.VISIBLE
-                        is Resource.Success -> {
-                            binding.progressBar.visibility = View.GONE
-                            saveWarung(result.data)
-                        }
-                        is Resource.Failure -> Toast.makeText(
-                            context,
-                            result.message,
-                            Toast.LENGTH_SHORT
-                        ).show()
+        viewModel.uploadWarungImage(uriImage!!, binding.edtName.text.toString().trim())
+            .observe(viewLifecycleOwner) { result ->
+                when (result) {
+                    is Resource.Loading -> binding.progressBar.visibility = View.VISIBLE
+                    is Resource.Success -> {
+                        binding.progressBar.visibility = View.GONE
+                        saveWarung(result.data)
                     }
+                    is Resource.Failure -> Toast.makeText(
+                        context,
+                        result.message,
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
-        }
+            }
     }
 
     private fun saveWarung(uri: Uri?) {
@@ -266,7 +271,7 @@ class EditFragment : Fragment() {
             .show()
     }
 
-    private fun emptyTextCheck(): Boolean {
+    private fun checkEditText(): Boolean {
         var check: Boolean
         with(binding) {
             val isNullOrEmpty =
