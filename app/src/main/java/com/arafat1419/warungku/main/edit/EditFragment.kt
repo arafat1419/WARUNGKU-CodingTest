@@ -1,11 +1,11 @@
 package com.arafat1419.warungku.main.edit
 
 import android.Manifest
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
@@ -14,7 +14,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.net.toUri
@@ -31,6 +30,9 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 
 class EditFragment : Fragment() {
@@ -73,10 +75,19 @@ class EditFragment : Fragment() {
                 getLocation()
             }
             imgPhoto.setOnClickListener {
-                Intent(Intent.ACTION_GET_CONTENT).also {
-                    it.type = "image/*"
-                    startForResult.launch(it)
-                }
+                val builder = AlertDialog.Builder(requireContext())
+                    .setTitle("Choose a profile image")
+                    .setItems(arrayOf("Take photo", "Choose from gallery")) { _, index ->
+                        when (index) {
+                            0 -> cameraLauncher.launch(null)
+                            1 -> galleryLauncher.launch("image/*")
+                        }
+                    }
+                    .setNegativeButton("Cancel") { dialog, _ ->
+                        dialog.cancel()
+                    }
+                builder.create()
+                builder.show()
             }
             btnSubmit.setOnClickListener {
                 if (checkEditText()) {
@@ -90,19 +101,26 @@ class EditFragment : Fragment() {
         }
     }
 
-    private val startForResult =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                val intent = result.data
-                val filePath: Uri = intent?.data!!
+    private val cameraLauncher =
+        registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+            val uri = getImageUriFromBitmap(bitmap)
+            uriImage = uri
 
-                uriImage = filePath
+            try {
+                binding.imgPhoto.setImageURI(uri)
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
 
-                try {
-                    binding.imgPhoto.setImageURI(filePath)
-                } catch (e: IOException) {
-                    e.printStackTrace()
-                }
+    private val galleryLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uriImage = uri
+
+            try {
+                binding.imgPhoto.setImageURI(uri)
+            } catch (e: IOException) {
+                e.printStackTrace()
             }
         }
 
@@ -288,6 +306,25 @@ class EditFragment : Fragment() {
             }
             .create()
             .show()
+    }
+
+    private fun getImageUriFromBitmap(bitmap: Bitmap?): Uri? {
+        var tempDir = context?.getExternalFilesDir(null)
+        tempDir = File(tempDir?.absolutePath + "/.temp/")
+        tempDir.mkdir()
+
+        val tempFile = File.createTempFile("IMG_TEMP_", ".jpg", tempDir)
+        val bytes = ByteArrayOutputStream()
+        bitmap?.compress(Bitmap.CompressFormat.JPEG, 100, bytes)
+        val bitmapData = bytes.toByteArray()
+
+        FileOutputStream(tempFile).apply {
+            write(bitmapData)
+            flush()
+            close()
+        }
+        return Uri.fromFile(tempFile)
+
     }
 
     private fun checkEditText(): Boolean {
